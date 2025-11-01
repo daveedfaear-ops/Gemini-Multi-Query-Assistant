@@ -5,6 +5,8 @@ import type { KnowledgeArticle } from '../services/knowledgeBaseService';
 import ResponseCard from './ResponseCard';
 import { LoadingSpinner, UploadIcon, DownloadIcon, FolderOpenIcon } from './icons/Icons';
 
+declare var pdfjsLib: any;
+
 const KnowledgePanel: React.FC = () => {
   const [keywords, setKeywords] = useState('');
   const [searchResults, setSearchResults] = useState<Omit<KnowledgeArticle, 'keywords'>[]>([]);
@@ -44,7 +46,7 @@ const KnowledgePanel: React.FC = () => {
     }
   };
   
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+ const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -53,34 +55,65 @@ const KnowledgePanel: React.FC = () => {
     setResponse('');
     showNotification(`Processing "${file.name}"...`);
 
-    try {
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-            try {
-                const content = e.target?.result as string;
-                await addArticleToKnowledgeBase(file.name, content);
-                showNotification(`Successfully added "${file.name}" to the knowledge base.`);
-                setKeywords('');
-                setSearchResults([]);
-            } catch (err) {
-                 setError(err instanceof Error ? err.message : 'Failed to process and add file.');
-                 showNotification(`Error processing "${file.name}".`);
-            } finally {
-                setIsProcessingFile(false);
-                if(fileInputRef.current) fileInputRef.current.value = '';
-            }
-        };
-        reader.onerror = () => {
-            setError('Failed to read the file.');
-            showNotification(`Error reading "${file.name}".`);
-            setIsProcessingFile(false);
-        };
-        reader.readAsText(file);
-    } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred during file processing.');
+    const processAndAddFile = async (content: string) => {
+      try {
+        await addArticleToKnowledgeBase(file.name, content);
+        showNotification(`Successfully added "${file.name}" to the knowledge base.`);
+        setKeywords('');
+        setSearchResults([]);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to process and add file.';
+        setError(message);
+        showNotification(`Error processing "${file.name}".`);
+      } finally {
         setIsProcessingFile(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }
+    };
+
+    if (file.type === 'application/pdf') {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs`;
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const arrayBuffer = e.target?.result as ArrayBuffer;
+          const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+          let fullText = '';
+          for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const textContent = await page.getTextContent();
+            const pageText = textContent.items.map((item: any) => item.str).join(' ');
+            fullText += pageText + '\n\n';
+          }
+          await processAndAddFile(fullText);
+        } catch (err) {
+          const message = err instanceof Error ? err.message : 'Failed to parse PDF content.';
+          setError(message);
+          showNotification(`Error parsing PDF "${file.name}".`);
+          setIsProcessingFile(false);
+        }
+      };
+      reader.onerror = () => {
+        setError('Failed to read the PDF file.');
+        showNotification(`Error reading "${file.name}".`);
+        setIsProcessingFile(false);
+      };
+      reader.readAsArrayBuffer(file);
+    } else {
+      // Assume text-based file
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const content = e.target?.result as string;
+        await processAndAddFile(content);
+      };
+      reader.onerror = () => {
+        setError('Failed to read the file.');
+        showNotification(`Error reading "${file.name}".`);
+        setIsProcessingFile(false);
+      };
+      reader.readAsText(file);
     }
-};
+  };
 
   const handleSaveKnowledgeBase = () => {
     try {
@@ -210,7 +243,7 @@ const KnowledgePanel: React.FC = () => {
               </button>
             </form>
             <div className="flex items-center space-x-2 border-l border-border-color pl-4">
-               <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept=".txt,.md,.json,.csv" />
+               <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept=".txt,.md,.json,.csv,.pdf" />
                <input type="file" ref={loadFileRef} onChange={handleLoadFileChange} className="hidden" accept=".json" />
                <button onClick={() => fileInputRef.current?.click()} disabled={isLoading} title="Upload new file to knowledge base" className="p-2 bg-background-secondary border border-border-color text-white font-semibold rounded-lg hover:bg-background-primary disabled:bg-slate-500 disabled:cursor-not-allowed transition-colors"> <UploadIcon /> </button>
                <button onClick={() => loadFileRef.current?.click()} disabled={isLoading} title="Load knowledge base from file" className="p-2 bg-background-secondary border border-border-color text-white font-semibold rounded-lg hover:bg-background-primary disabled:bg-slate-500 disabled:cursor-not-allowed transition-colors"> <FolderOpenIcon /> </button>
