@@ -1,6 +1,7 @@
 import React from 'react';
 import { SearchResult } from '../types';
 import { DownloadIcon } from './icons/Icons';
+import AmbientCanvas from './AmbientCanvas';
 
 interface ResponseCardProps {
   response: string | SearchResult;
@@ -12,17 +13,6 @@ interface ResponseCardProps {
 
 const ResponseCard: React.FC<ResponseCardProps> = ({ response, isLoading, error, introText, onSave }) => {
   const renderContent = () => {
-    if (isLoading) {
-      return (
-        <div className="flex items-center justify-center space-x-2 animate-pulse-fast">
-          <div className="w-3 h-3 bg-brand-primary rounded-full"></div>
-          <div className="w-3 h-3 bg-brand-primary rounded-full" style={{ animationDelay: '0.2s' }}></div>
-          <div className="w-3 h-3 bg-brand-primary rounded-full" style={{ animationDelay: '0.4s' }}></div>
-          <span className="ml-2 text-content-secondary">Generating response...</span>
-        </div>
-      );
-    }
-
     if (error) {
       return (
         <div className="text-red-400 bg-red-900/20 p-4 rounded-md">
@@ -93,10 +83,20 @@ const ResponseCard: React.FC<ResponseCardProps> = ({ response, isLoading, error,
   };
 
   return (
-    <div className="bg-background-secondary p-6 rounded-lg shadow-inner min-h-[200px] flex items-center justify-center">
-      <div className="w-full h-full">
-        {renderContent()}
-      </div>
+    <div className="relative bg-background-secondary p-6 rounded-lg shadow-inner min-h-[200px] flex items-center justify-center overflow-hidden">
+      {isLoading ? (
+        <>
+          <AmbientCanvas />
+          <div className="relative z-10 flex flex-col items-center justify-center text-center">
+            <span className="text-content-secondary animate-pulse">Generating response...</span>
+            <p className="text-xs text-content-secondary/70 mt-2">The AI is thinking deeply.</p>
+          </div>
+        </>
+      ) : (
+        <div className="w-full h-full">
+          {renderContent()}
+        </div>
+      )}
     </div>
   );
 };
