@@ -1,0 +1,5 @@
+{
+  "name": "Gemini Multi-Query Assistant",
+  "description": "A versatile AI assistant powered by Gemini. It features a chat bot for conversations, a search-grounded mode for up-to-date information, a flexible task mode for content analysis and creation, and a deep thinking mode for complex problem-solving.",
+  "requestFramePermissions": []
+}
