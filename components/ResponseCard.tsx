@@ -35,7 +35,7 @@ const ResponseCard: React.FC<ResponseCardProps> = ({ response, isLoading, error,
       .join('')
       .split('*').map((part, index) => index % 2 !== 0 ? `<em class="italic">${part}</em>` : part)
       .join('')
-      .replace(/```([\s\S]*?)```/g, '<pre class="bg-background-primary p-3 rounded-md my-2 overflow-x-auto text-sm"><code>$1</code></pre>')
+      .replace(/```([\s\S]*?)```/g, '<pre class="bg-background-primary p-3 rounded-md my-2 text-sm whitespace-pre-wrap break-words"><code>$1</code></pre>')
       .replace(/`([^`]+)`/g, '<code class="bg-background-primary px-1.5 py-1 rounded-md text-brand-primary/80 text-sm">$1</code>')
       .replace(/\n/g, '<br />');
 
@@ -50,13 +50,13 @@ const ResponseCard: React.FC<ResponseCardProps> = ({ response, isLoading, error,
             <ul className="space-y-2">
               {sources.map((source, index) =>
                 source.web ? (
-                  <li key={index} className="flex items-center">
-                     <span className="flex-shrink-0 w-4 h-4 text-content-secondary">🌐</span>
+                  <li key={index} className="flex items-start">
+                     <span className="flex-shrink-0 w-4 h-4 text-content-secondary pt-1">🌐</span>
                     <a
                       href={source.web.uri}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="ml-2 text-sm text-blue-400 hover:text-blue-300 hover:underline truncate"
+                      className="ml-2 text-sm text-blue-400 hover:text-blue-300 hover:underline break-all"
                       title={source.web.uri}
                     >
                       {source.web.title || source.web.uri}
